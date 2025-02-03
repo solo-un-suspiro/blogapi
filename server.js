@@ -1,3 +1,5 @@
+
+
 const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
@@ -10,25 +12,20 @@ app.use(cors());
 
 app.use(express.json());
 
-// Configuración de la base de datos
-const db = mysql.createConnection({
+// Configuración del pool de conexiones
+const pool = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: "Q~Z#PZbNz]4",
   database: process.env.DB_NAME,
-});
-
-db.connect((err) => {
-  if (err) {
-    console.error('Error connecting to the database:', err);
-    return;
-  }
-  console.log('Connected to the database.');
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
 });
 
 // Rutas API
 app.get('/api/articles', (req, res) => {
-  db.query('SELECT * FROM articles', (err, results) => {
+  pool.query('SELECT * FROM articles', (err, results) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -38,7 +35,7 @@ app.get('/api/articles', (req, res) => {
 });
 
 app.get('/api/articles/:id', (req, res) => {
-  db.query('SELECT * FROM articles WHERE id = ?', [req.params.id], (err, results) => {
+  pool.query('SELECT * FROM articles WHERE id = ?', [req.params.id], (err, results) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -53,7 +50,7 @@ app.get('/api/articles/:id', (req, res) => {
 
 app.post('/api/articles', (req, res) => {
   const { title, content } = req.body;
-  db.query('INSERT INTO articles (title, content) VALUES (?, ?)', [title, content], (err, result) => {
+  pool.query('INSERT INTO articles (title, content) VALUES (?, ?)', [title, content], (err, result) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -64,7 +61,7 @@ app.post('/api/articles', (req, res) => {
 
 app.put('/api/articles/:id', (req, res) => {
   const { title, content } = req.body;
-  db.query('UPDATE articles SET title = ?, content = ? WHERE id = ?', [title, content, req.params.id], (err) => {
+  pool.query('UPDATE articles SET title = ?, content = ? WHERE id = ?', [title, content, req.params.id], (err) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
@@ -74,7 +71,7 @@ app.put('/api/articles/:id', (req, res) => {
 });
 
 app.delete('/api/articles/:id', (req, res) => {
-  db.query('DELETE FROM articles WHERE id = ?', [req.params.id], (err) => {
+  pool.query('DELETE FROM articles WHERE id = ?', [req.params.id], (err) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
