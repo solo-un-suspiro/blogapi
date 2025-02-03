@@ -1,17 +1,24 @@
 const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
 
-app.use(cors());
+// Configurar CORS
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'https://test.nexwey.online', // Ajusta esto a la URL de tu frontend en producción
+  optionsSuccessStatus: 200
+}));
+
 app.use(express.json());
 
+// Configuración de la base de datos
 const db = mysql.createConnection({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
+  password: "Q~Z#PZbNz]4",
   database: process.env.DB_NAME,
 });
 
@@ -23,7 +30,7 @@ db.connect((err) => {
   console.log('Connected to the database.');
 });
 
-// Get all articles
+// Rutas API
 app.get('/api/articles', (req, res) => {
   db.query('SELECT * FROM articles', (err, results) => {
     if (err) {
@@ -34,7 +41,6 @@ app.get('/api/articles', (req, res) => {
   });
 });
 
-// Get a single article
 app.get('/api/articles/:id', (req, res) => {
   db.query('SELECT * FROM articles WHERE id = ?', [req.params.id], (err, results) => {
     if (err) {
@@ -49,7 +55,6 @@ app.get('/api/articles/:id', (req, res) => {
   });
 });
 
-// Create a new article
 app.post('/api/articles', (req, res) => {
   const { title, content } = req.body;
   db.query('INSERT INTO articles (title, content) VALUES (?, ?)', [title, content], (err, result) => {
@@ -61,7 +66,6 @@ app.post('/api/articles', (req, res) => {
   });
 });
 
-// Update an article
 app.put('/api/articles/:id', (req, res) => {
   const { title, content } = req.body;
   db.query('UPDATE articles SET title = ?, content = ? WHERE id = ?', [title, content, req.params.id], (err) => {
@@ -73,7 +77,6 @@ app.put('/api/articles/:id', (req, res) => {
   });
 });
 
-// Delete an article
 app.delete('/api/articles/:id', (req, res) => {
   db.query('DELETE FROM articles WHERE id = ?', [req.params.id], (err) => {
     if (err) {
@@ -83,6 +86,15 @@ app.delete('/api/articles/:id', (req, res) => {
     res.json({ message: 'Article deleted successfully' });
   });
 });
+
+// Servir archivos estáticos del frontend en producción
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, 'client/dist')));
+
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'client/dist', 'index.html'));
+  });
+}
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
